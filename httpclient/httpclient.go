@@ -21,6 +21,7 @@ type Client struct {
 
 	Timeout time.Duration
 	UA      string
+	Headers http.Header
 }
 
 // A Request represents an HTTP request received by a server
@@ -146,6 +147,21 @@ func New(o *Options) (*Client, error) {
 
 func (c *Client) setDefault(r *http.Request) {
 	r.Header.Set("User-Agent", c.UA)
+	for k, v := range c.Headers {
+		r.Header[k] = v
+	}
+}
+
+func (c *Client) WithHeader(k, v string) *Client {
+	if c.Headers == nil {
+		c.Headers = make(http.Header)
+	}
+	c.Headers.Set(k, v)
+	return c
+}
+
+func (c *Client) AuthorizationJWT(token string) {
+	c.Headers.Set("Authorization", "Bearer "+token)
 }
 
 // Get creates HTTP GET request.
@@ -161,6 +177,7 @@ func (c *Client) makeRequest(method, url string, body io.Reader) *Request {
 		return &Request{Err: err}
 	}
 	c.setDefault(req)
+	req.BasicAuth()
 	return &Request{Request: req, Client: c, Cancel: cancel}
 }
 
